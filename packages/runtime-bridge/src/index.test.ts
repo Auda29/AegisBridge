@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { createRuntimeBridge } from './index';
-import { InMemorySnapshotStorage, LocalFileSnapshotStorage, SQLiteSnapshotStorageStub } from './storage';
+import { InMemorySnapshotStorage, LocalFileSnapshotStorage, JsonFileSnapshotStorage } from './storage';
 
 test('runSuggestedCommand appends command history and terminal session metadata', async () => {
   const bridge = createRuntimeBridge(new InMemorySnapshotStorage());
@@ -78,16 +78,16 @@ test('local file storage persists snapshots across bridge instances', async () =
   }
 });
 
-test('sqlite storage stub now behaves as a real local file-backed storage path', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'runtime-bridge-sqlite-stub-'));
-  const snapshotFile = join(tempDir, 'alpha-state.sqlite');
-  const storage = new SQLiteSnapshotStorageStub(snapshotFile);
+test('json file storage persists and restores snapshots correctly', async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'runtime-bridge-json-'));
+  const snapshotFile = join(tempDir, 'alpha-state.json');
+  const storage = new JsonFileSnapshotStorage(snapshotFile);
 
   try {
     const bridge = createRuntimeBridge(storage);
     await bridge.runSuggestedCommand('find . -maxdepth 3 -type f | sort');
 
-    const restored = await new SQLiteSnapshotStorageStub(snapshotFile).load();
+    const restored = await new JsonFileSnapshotStorage(snapshotFile).load();
     assert.ok(restored);
     assert.ok(restored.terminalCommands?.some((command) => command.command === 'find . -maxdepth 3 -type f | sort'));
   } finally {

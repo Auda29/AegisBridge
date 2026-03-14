@@ -57,19 +57,24 @@ export class LocalFileSnapshotStorage implements SnapshotStorage {
   }
 
   async save(snapshot: AlphaSnapshot): Promise<void> {
-    this.writeChain = this.writeChain.then(async () => {
-      await mkdir(dirname(this.filePath), { recursive: true });
+    this.writeChain = this.writeChain
+      .then(async () => {
+        await mkdir(dirname(this.filePath), { recursive: true });
 
-      const tempFilePath = `${this.filePath}.tmp`;
-      const payload: PersistedSnapshotEnvelope = {
-        version: 1,
-        savedAt: new Date().toISOString(),
-        snapshot
-      };
+        const tempFilePath = `${this.filePath}.tmp`;
+        const payload: PersistedSnapshotEnvelope = {
+          version: 1,
+          savedAt: new Date().toISOString(),
+          snapshot
+        };
 
-      await writeFile(tempFilePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
-      await rename(tempFilePath, this.filePath);
-    });
+        await writeFile(tempFilePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+        await rename(tempFilePath, this.filePath);
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to persist snapshot to ${this.filePath}: ${message}`);
+      });
 
     return this.writeChain;
   }
@@ -79,13 +84,7 @@ export class LocalFileSnapshotStorage implements SnapshotStorage {
   }
 }
 
-// Transitional compatibility alias: this keeps the pre-existing API stable while
-// the runtime bridge moves from an in-memory stub toward a real on-disk store.
-export class SQLiteSnapshotStorageStub extends LocalFileSnapshotStorage {
-  constructor(sqliteFile: string) {
-    super(sqliteFile);
-  }
-}
+export class JsonFileSnapshotStorage extends LocalFileSnapshotStorage {}
 
 function isMissingFileError(error: unknown): boolean {
   return !!error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT';
