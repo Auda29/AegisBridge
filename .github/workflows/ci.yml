@@ -41,14 +41,6 @@ jobs:
       - name: Build UI
         run: npm run build:ui
 
-      - name: Upload UI artifact
-        if: success() && matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v5
-        with:
-          name: ui-dist
-          path: apps/ui/dist
-          if-no-files-found: error
-
   package:
     if: github.event_name == 'push'
     needs: validate
