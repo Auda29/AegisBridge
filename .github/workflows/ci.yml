@@ -32,8 +32,8 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Runtime tests
-        run: npm run test:runtime
+      - name: Tests
+        run: npm run test
 
       - name: Build UI
         run: npm run build:ui
@@ -47,6 +47,7 @@ jobs:
           if-no-files-found: error
 
   package:
+    if: github.event_name == 'push'
     needs: validate
     runs-on: ${{ matrix.os }}
     strategy:

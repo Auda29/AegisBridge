@@ -1,5 +1,3 @@
-export { buildMockAlphaSnapshot } from './mock-snapshot';
-
 export type RunStatus =
   | 'queued'
   | 'planning'

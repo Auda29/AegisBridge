@@ -1,4 +1,4 @@
-import type { AlphaSnapshot, TerminalCommand, TerminalSession } from './index';
+import type { AlphaSnapshot, TerminalCommand, TerminalSession } from '@agentic-scifi/shared-schema';
 
 export function buildMockAlphaSnapshot(label: string = 'mock'): AlphaSnapshot {
   const timestamp = new Date().toISOString();

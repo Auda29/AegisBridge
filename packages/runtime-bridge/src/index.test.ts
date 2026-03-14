@@ -78,6 +78,159 @@ test('local file storage persists snapshots across bridge instances', async () =
   }
 });
 
+// --- Input validation tests ---
+
+test('approveApproval throws on empty string', async () => {
+  const bridge = createRuntimeBridge(new InMemorySnapshotStorage());
+  await assert.rejects(() => bridge.approveApproval(''), /non-empty approvalId/);
+});
+
+test('rejectApproval throws on empty string', async () => {
+  const bridge = createRuntimeBridge(new InMemorySnapshotStorage());
+  await assert.rejects(() => bridge.rejectApproval(''), /non-empty approvalId/);
+});
+
+test('runSuggestedCommand throws on empty string', async () => {
+  const bridge = createRuntimeBridge(new InMemorySnapshotStorage());
+  await assert.rejects(() => bridge.runSuggestedCommand(''), /non-empty command/);
+});
+
+// --- Reject approval flow ---
+
+test('rejectApproval removes the approval and emits rejection event', async () => {
+  const bridge = createRuntimeBridge(new InMemorySnapshotStorage());
+  const before = await bridge.getAlphaSnapshot();
+  const targetApproval = before.approvals[1];
+  assert.ok(targetApproval);
+
+  const result = await bridge.rejectApproval(targetApproval.id);
+
+  assert.equal(result.snapshot.approvals.some((a) => a.id === targetApproval.id), false);
+  assert.equal(result.event.category, 'approval');
+  assert.match(result.event.title, /rejected/i);
+  assert.match(result.event.detail, new RegExp(targetApproval.title));
+});
+
+// --- Approving unknown ID still works gracefully ---
+
+test('approveApproval with unknown id removes nothing and notes unknown', async () => {
+  const bridge = createRuntimeBridge(new InMemorySnapshotStorage());
+  const before = await bridge.getAlphaSnapshot();
+  const approvalCount = before.approvals.length;
+
+  const result = await bridge.approveApproval('nonexistent-id');
+
+  assert.equal(result.snapshot.approvals.length, approvalCount);
+  assert.match(result.event.detail, /unknown/i);
+});
+
+// --- Event subscription ---
+
+test('subscribeToEvents delivers heartbeat event after timeout', async () => {
+  const bridge = createRuntimeBridge(new InMemorySnapshotStorage());
+  const events: import('@agentic-scifi/shared-schema').TimelineEvent[] = [];
+
+  const unsubscribe = bridge.subscribeToEvents((event) => {
+    events.push(event);
+  });
+
+  // Wait for the heartbeat (1800ms timer + some margin)
+  await new Promise((resolve) => setTimeout(resolve, 2200));
+  unsubscribe();
+
+  assert.ok(events.length >= 1, 'Expected at least one heartbeat event');
+  assert.equal(events[0].category, 'system');
+  assert.match(events[0].title, /pulse/i);
+});
+
+test('unsubscribe prevents further event delivery', async () => {
+  const bridge = createRuntimeBridge(new InMemorySnapshotStorage());
+  const events: import('@agentic-scifi/shared-schema').TimelineEvent[] = [];
+
+  const unsubscribe = bridge.subscribeToEvents((event) => {
+    events.push(event);
+  });
+  unsubscribe();
+
+  // Wait past the heartbeat window
+  await new Promise((resolve) => setTimeout(resolve, 2200));
+
+  assert.equal(events.length, 0, 'No events should be delivered after unsubscribe');
+});
+
+// --- Command risk matching ---
+
+test('runSuggestedCommand uses matched suggestion risk level', async () => {
+  const bridge = createRuntimeBridge(new InMemorySnapshotStorage());
+
+  // 'npm run build:ui' is a known suggestion with risk 'low'
+  const result = await bridge.runSuggestedCommand('npm run build:ui');
+  const cmd = result.snapshot.terminalCommands?.[0];
+
+  assert.ok(cmd);
+  assert.equal(cmd.risk, 'low');
+});
+
+test('runSuggestedCommand defaults to medium risk for unknown commands', async () => {
+  const bridge = createRuntimeBridge(new InMemorySnapshotStorage());
+
+  const result = await bridge.runSuggestedCommand('rm -rf /');
+  const cmd = result.snapshot.terminalCommands?.[0];
+
+  assert.ok(cmd);
+  assert.equal(cmd.risk, 'medium');
+});
+
+// --- Storage edge cases ---
+
+test('InMemorySnapshotStorage returns null on first load', async () => {
+  const storage = new InMemorySnapshotStorage();
+  const result = await storage.load();
+  assert.equal(result, null);
+});
+
+test('LocalFileSnapshotStorage load returns null for nonexistent file', async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'runtime-bridge-missing-'));
+  try {
+    const storage = new LocalFileSnapshotStorage(join(tempDir, 'does-not-exist.json'));
+    const result = await storage.load();
+    assert.equal(result, null);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('LocalFileSnapshotStorage load throws on corrupt JSON', async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'runtime-bridge-corrupt-'));
+  const filePath = join(tempDir, 'corrupt.json');
+  const { writeFile: writeFileSync } = await import('node:fs/promises');
+  await writeFileSync(filePath, 'not valid json {{{', 'utf8');
+
+  try {
+    const storage = new LocalFileSnapshotStorage(filePath);
+    await assert.rejects(() => storage.load(), /Failed to load snapshot/);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('LocalFileSnapshotStorage clear removes the file', async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'runtime-bridge-clear-'));
+  const filePath = join(tempDir, 'snapshot.json');
+  const storage = new LocalFileSnapshotStorage(filePath);
+
+  try {
+    const bridge = createRuntimeBridge(storage);
+    await bridge.runSuggestedCommand('echo hello');
+
+    await storage.clear();
+    const afterClear = await storage.load();
+    assert.equal(afterClear, null);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('json file storage persists and restores snapshots correctly', async () => {
   const tempDir = await mkdtemp(join(tmpdir(), 'runtime-bridge-json-'));
   const snapshotFile = join(tempDir, 'alpha-state.json');

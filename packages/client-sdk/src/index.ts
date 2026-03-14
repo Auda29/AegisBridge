@@ -1,5 +1,5 @@
 import type { AlphaSnapshot, ApprovalActionResult, CommandActionResult, TerminalCommand, TerminalSession, TimelineEvent } from '@agentic-scifi/shared-schema';
-import { buildMockAlphaSnapshot } from '@agentic-scifi/shared-schema';
+import { buildMockAlphaSnapshot } from '@agentic-scifi/test-utils';
 
 export interface RuntimeBridgeClient {
   getAlphaSnapshot(): Promise<AlphaSnapshot>;

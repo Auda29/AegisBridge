@@ -7,9 +7,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@agentic-scifi/shared-schema": "0.1.0-alpha.0"
+    "@agentic-scifi/shared-schema": "0.1.0-alpha.0",
+    "@agentic-scifi/test-utils": "0.1.0-alpha.0"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test src/*.test.ts"
   }
 }

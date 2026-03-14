@@ -6,7 +6,7 @@ import type {
   TerminalSession,
   TimelineEvent
 } from '@agentic-scifi/shared-schema';
-import { buildMockAlphaSnapshot } from '@agentic-scifi/shared-schema';
+import { buildMockAlphaSnapshot } from '@agentic-scifi/test-utils';
 import { InMemorySnapshotStorage, type SnapshotStorage } from './storage';
 
 export {
