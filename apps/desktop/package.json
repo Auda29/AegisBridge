@@ -1,0 +1,11 @@
+{
+  "name": "@agentic-scifi/desktop",
+  "private": true,
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "main": "src/main.ts",
+  "scripts": {
+    "dev": "echo desktop shell scaffolded; integrate electron toolchain next",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

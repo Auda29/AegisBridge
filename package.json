@@ -1,0 +1,71 @@
+{
+  "name": "aegis-bridge",
+  "private": true,
+  "version": "0.1.0-alpha.0",
+  "description": "A local-first command center for agents, terminal workflows, and approval-safe operations.",
+  "author": "Niklas Wecker",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "main": "apps/desktop/build/main.js",
+  "scripts": {
+    "dev:ui": "npm --workspace @agentic-scifi/ui run dev",
+    "build:ui": "npm --workspace @agentic-scifi/ui run build",
+    "build:desktop": "node scripts/build-desktop.mjs",
+    "build": "npm run build:ui && npm run build:desktop",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test:runtime": "tsx --test packages/runtime-bridge/src/*.test.ts",
+    "start:desktop": "npm run build && electron .",
+    "package:dir": "npm run build && electron-builder --dir",
+    "package:linux": "npm run build && electron-builder --linux AppImage tar.gz",
+    "package:win": "npm run build && electron-builder --win nsis portable",
+    "package:mac": "npm run build && electron-builder --mac dmg zip"
+  },
+  "build": {
+    "appId": "ai.openclaw.aegisbridge",
+    "productName": "Aegis Bridge",
+    "directories": {
+      "output": "release",
+      "buildResources": "build-resources"
+    },
+    "files": [
+      "apps/desktop/build/**/*",
+      "apps/ui/dist/**/*",
+      "package.json",
+      "README.md",
+      "LICENSE"
+    ],
+    "asar": true,
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "category": "Development"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "electron": "^35.1.5",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.25.1",
+    "tsx": "^4.19.3"
+  }
+}

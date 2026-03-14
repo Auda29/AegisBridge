@@ -1,0 +1,22 @@
+{
+  "name": "@agentic-scifi/ui",
+  "private": true,
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@agentic-scifi/client-sdk": "0.1.0-alpha.0",
+    "@agentic-scifi/shared-schema": "0.1.0-alpha.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.2.0"
+  }
+}
