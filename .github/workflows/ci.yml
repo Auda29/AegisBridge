@@ -45,3 +45,41 @@ jobs:
           name: ui-dist
           path: apps/ui/dist
           if-no-files-found: error
+
+  package:
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            command: npm run package:linux
+          - os: windows-latest
+            command: npm run package:win
+          - os: macos-latest
+            command: npm run package:mac
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Package app
+        run: ${{ matrix.command }}
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: release/**/*
+          if-no-files-found: error
