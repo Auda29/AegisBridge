@@ -24,6 +24,7 @@ function AppShell() {
   const client = useBridgeClient();
   const { snapshot, setSnapshot, status, errorMessage, restoredTerminalIds, setRestoredTerminalIds } = useAlphaSnapshot(client);
   const [activeTerminalId, setActiveTerminalId] = useState<string | null>(null);
+  const [activeNav, setActiveNav] = useState('Projects');
 
   const terminalSessions = snapshot?.terminalSessions ?? [];
 
@@ -106,93 +107,112 @@ function AppShell() {
         </div>
         <nav>
           {nav.map((item) => (
-            <button key={item} className={item === 'Projects' ? 'nav-item active' : 'nav-item'}>
+            <button
+              key={item}
+              className={item === activeNav ? 'nav-item active' : 'nav-item'}
+              onClick={() => setActiveNav(item)}
+            >
               {item}
             </button>
           ))}
         </nav>
       </aside>
 
-      <main className="workspace">
-        <header className="topbar panel">
-          <div>
-            <p className="eyebrow">project workspace</p>
-            <h1>{project.name}</h1>
-          </div>
-          <div className="topbar-meta">
-            <span className="chip cyan">{project.phase}</span>
-            <span className="chip amber">{snapshot.approvals.length} approvals pending</span>
-            <span className="chip neutral">bridge-fed alpha</span>
-          </div>
-        </header>
-
-        <section className="center-grid">
-          <div className="panel hero">
-            <div className="panel-head">
+      {activeNav === 'Projects' ? (
+        <>
+          <main className="workspace">
+            <header className="topbar panel">
               <div>
-                <p className="eyebrow">mission</p>
-                <h2>{project.description ?? 'Build a trustworthy agentic command center'}</h2>
+                <p className="eyebrow">project workspace</p>
+                <h1>{project.name}</h1>
               </div>
-              <button className="action">Start run</button>
-            </div>
-            <div className="hero-columns">
-              <div>
-                <h3>Next steps</h3>
-                <ul>
-                  {(project.nextSteps ?? []).map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </ul>
+              <div className="topbar-meta">
+                <span className="chip cyan">{project.phase}</span>
+                <span className="chip amber">{snapshot.approvals.length} approvals pending</span>
+                <span className="chip neutral">bridge-fed alpha</span>
               </div>
-              <div>
-                <h3>Open decisions</h3>
-                <ul>
-                  {(project.decisions ?? []).map((decision) => (
-                    <li key={decision}>{decision}</li>
-                  ))}
-                </ul>
+            </header>
+
+            <section className="center-grid">
+              <div className="panel hero">
+                <div className="panel-head">
+                  <div>
+                    <p className="eyebrow">mission</p>
+                    <h2>{project.description ?? 'Build a trustworthy agentic command center'}</h2>
+                  </div>
+                  <button className="action">Start run</button>
+                </div>
+                <div className="hero-columns">
+                  <div>
+                    <h3>Next steps</h3>
+                    <ul>
+                      {(project.nextSteps ?? []).map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3>Open decisions</h3>
+                    <ul>
+                      {(project.decisions ?? []).map((decision) => (
+                        <li key={decision}>{decision}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
-            </div>
+
+              <AgentBoard runs={snapshot.runs} />
+              <TimelinePanel events={snapshot.events} />
+              <CommandSurface
+                suggestions={snapshot.commandSuggestions ?? []}
+                onStageCommand={(cmd) => void handleSuggestedCommand(cmd)}
+              />
+              <TerminalSurface
+                session={activeTerminal}
+                isRestored={isRestoredTerminal}
+                commandSurfaceCount={snapshot.commandSuggestions?.length ?? 0}
+                onSelectSession={setActiveTerminalId}
+              />
+            </section>
+          </main>
+
+          <aside className="context">
+            <section className="panel">
+              <p className="eyebrow">context stack</p>
+              <h2>Project context</h2>
+              <ul className="metric-list">
+                <li><span>Tasks</span><strong>{snapshot.tasks.length}</strong></li>
+                <li><span>Runs</span><strong>{snapshot.runs.length}</strong></li>
+                <li><span>Storage</span><strong>SQLite + Markdown</strong></li>
+              </ul>
+            </section>
+
+            <ApprovalPanel snapshot={snapshot} onSnapshotUpdate={handleSnapshotUpdate} />
+
+            <section className="panel">
+              <p className="eyebrow">knowledge capture</p>
+              <h2>Artifacts</h2>
+              <ul>
+                {snapshot.artifacts.map((artifact) => (
+                  <li key={artifact.id}>{artifact.title}</li>
+                ))}
+              </ul>
+            </section>
+          </aside>
+        </>
+      ) : (
+        <main className="workspace" style={{ alignContent: 'center', justifyContent: 'center', display: 'grid' }}>
+          <div className="panel" style={{ textAlign: 'center', padding: '64px', maxWidth: '600px', margin: '0 auto' }}>
+            <p className="eyebrow">Work in progress</p>
+            <h2>{activeNav} Module</h2>
+            <p style={{ marginTop: '16px' }}>This section of the Aegis command center is currently under development. The necessary bridge contracts and renderer components haven't been finalized yet.</p>
+            <button className="action" style={{ marginTop: '24px' }} onClick={() => setActiveNav('Projects')}>
+              Return to Projects
+            </button>
           </div>
-
-          <AgentBoard runs={snapshot.runs} />
-          <TimelinePanel events={snapshot.events} />
-          <CommandSurface
-            suggestions={snapshot.commandSuggestions ?? []}
-            onStageCommand={(cmd) => void handleSuggestedCommand(cmd)}
-          />
-          <TerminalSurface
-            session={activeTerminal}
-            isRestored={isRestoredTerminal}
-            commandSurfaceCount={snapshot.commandSuggestions?.length ?? 0}
-            onSelectSession={setActiveTerminalId}
-          />
-        </section>
-      </main>
-
-      <aside className="context">
-        <section className="panel">
-          <p className="eyebrow">context stack</p>
-          <h2>Project context</h2>
-          <ul className="metric-list">
-            <li><span>Tasks</span><strong>{snapshot.tasks.length}</strong></li>
-            <li><span>Runs</span><strong>{snapshot.runs.length}</strong></li>
-            <li><span>Storage</span><strong>SQLite + Markdown</strong></li>
-          </ul>
-        </section>
-
-        <ApprovalPanel snapshot={snapshot} onSnapshotUpdate={handleSnapshotUpdate} />
-
-        <section className="panel">
-          <p className="eyebrow">knowledge capture</p>
-          <h2>Artifacts</h2>
-          <ul>
-            {snapshot.artifacts.map((artifact) => (
-              <li key={artifact.id}>{artifact.title}</li>
-            ))}
-          </ul>
-        </section>
-      </aside>
+        </main>
+      )}
     </div>
   );
 }
